@@ -6,6 +6,10 @@ use nanos_sdk::io::SyscallError;
 
 use crate::internal::*;
 
+pub fn try_option<A>(q: Option<A>) -> Result<A, CryptographyError> {
+    q.ok_or(CryptographyError::NoneError)
+}
+
 pub fn with_public_keys<V, A:Address<A>>(
   path: &[u32],
   f: impl FnOnce(&nanos_sdk::bindings::cx_ecfp_public_key_t, &A) -> Result<V, CryptographyError>
