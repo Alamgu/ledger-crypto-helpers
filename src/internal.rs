@@ -1,6 +1,5 @@
 use arrayvec::{CapacityError};
 use core::default::Default;
-use core::option::NoneError;
 use core::ops::{Deref,DerefMut};
 use ledger_log::*;
 use nanos_sdk::bindings::*;
@@ -88,11 +87,6 @@ impl From<CapacityError> for CryptographyError {
         CryptographyError::CapacityError(e)
     }
 }
-impl From<NoneError> for CryptographyError {
-    fn from(_: NoneError) -> Self {
-        CryptographyError::NoneError
-    }
-}
 
 // #[inline(always)]
 pub fn with_private_key<A>(
@@ -108,7 +102,7 @@ pub fn with_private_key<A>(
             raw_key.as_ptr(),
             32, // raw_key is 64 bytes because of system call weirdness, but we only want 32.
             (&mut ec_k).deref_mut().deref_mut() as *mut nanos_sdk::bindings::cx_ecfp_private_key_t
-        )).ok()?;
+        ))?;
     info!("Key generated");
     f(ec_k.deref_mut().deref_mut())
 }

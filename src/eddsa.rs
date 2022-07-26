@@ -10,7 +10,7 @@ pub struct EdDSASignature(pub [u8; 64]);
 pub fn eddsa_sign(
     path : &ArrayVec<u32, 10>,
     m: &[u8],
-) -> Option<EdDSASignature> {
+) -> Result<EdDSASignature, CryptographyError> {
     let mut sig:[u8;64]=[0; 64];
     with_private_key(path, |key| {
         call_c_api_function!(
@@ -21,8 +21,8 @@ pub fn eddsa_sign(
                 m.len() as u32,
                 sig.as_mut_ptr(),
                 sig.len() as u32)
-        ).ok()?;
+        )?;
         Ok(())
-    }).ok()?;
-    Some(EdDSASignature(sig))
+    })?;
+    Ok(EdDSASignature(sig))
 }

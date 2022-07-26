@@ -13,7 +13,7 @@ pub fn with_public_keys<V, A:Address<A>>(
     let mut pubkey = Default::default();
     with_private_key(path, |ec_k| {
         info!("Getting private key");
-        get_pubkey_from_privkey(ec_k, &mut pubkey).ok()?;
+        get_pubkey_from_privkey(ec_k, &mut pubkey)?;
         Ok(())
     })?;
     let pkh = <A as Address<A>>::get_address(&pubkey)?;
