@@ -8,7 +8,7 @@ arrayvec = { version = "0.7.1", default-features = false }
 base64 = { version = "0.13.0", default-features = false }
 nanos_sdk = { git = "https://github.com/LedgerHQ/ledger-nanos-sdk.git" }
 nanos_ui = { git = "https://github.com/LedgerHQ/ledger-nanos-ui.git" }
-ledger-log = { git = "https://github.com/ea-nasir/ledger-log.git" }
+ledger-log = { git = "https://github.com/Alamgu/ledger-log.git" }
 zeroize = { version = "1.5.2", default-features = false }
 
 
