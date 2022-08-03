@@ -6,9 +6,9 @@ edition = "2018"
 [dependencies]
 arrayvec = { version = "0.7.1", default-features = false }
 base64 = { version = "0.13.0", default-features = false }
-nanos_sdk = "0.1.0"
-nanos_ui = "0.1.0"
-ledger-log = "0.1.0"
+nanos_sdk = "*"
+nanos_ui = "*"
+ledger-log = "*"
 zeroize = { version = "1.5.2", default-features = false }
 
 
