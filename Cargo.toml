@@ -6,11 +6,16 @@ edition = "2018"
 [dependencies]
 arrayvec = { version = "0.7.1", default-features = false }
 base64 = { version = "0.13.0", default-features = false }
-nanos_sdk = { git = "https://github.com/LedgerHQ/ledger-nanos-sdk.git" }
-nanos_ui = { git = "https://github.com/LedgerHQ/ledger-nanos-ui.git" }
-ledger-log = { git = "https://github.com/alamgu/ledger-log.git" }
+nanos_sdk = "0.1.0"
+nanos_ui = "0.1.0"
+ledger-log = "0.1.0"
 zeroize = { version = "1.5.2", default-features = false }
 
 
 [features]
 speculos = ["nanos_sdk/speculos"]
+
+[patch.crates-io]
+nanos_sdk = { git = "https://github.com/LedgerHQ/ledger-nanos-sdk.git" }
+nanos_ui = { git = "https://github.com/LedgerHQ/ledger-nanos-ui.git" }
+ledger-log = { git = "https://github.com/alamgu/ledger-log.git" }
