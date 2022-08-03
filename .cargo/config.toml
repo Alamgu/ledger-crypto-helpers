@@ -1,0 +1,2 @@
+[registries]
+alamgu = { index = "https://github.com/alamgu/TODO" }
