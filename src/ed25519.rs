@@ -7,7 +7,6 @@ use zeroize::{Zeroizing};
 
 use crate::common::*;
 use crate::hasher::*;
-use crate::internal::*;
 
 struct BnLock;
 
@@ -44,6 +43,13 @@ impl Default for Ed25519 {
     }
 }
 
+pub fn with_private_key<A>(
+    path: &[u32],
+    f: impl FnOnce(&mut nanos_sdk::ecc::ECPrivateKey<32, 'E'>) -> Result<A, CryptographyError>
+) -> Result<A, CryptographyError> {
+    f(&mut nanos_sdk::ecc::Ed25519::from_bip32(path))
+}
+
 #[derive(Clone,Debug,PartialEq)]
 pub struct Ed25519Signature(pub [u8; 64]);
 
@@ -58,8 +64,8 @@ impl Ed25519 {
     pub fn init(&mut self, path : &ArrayVec<u32, 10>) -> Result<(),CryptographyError> {
         self.hash.clear();
 
-        with_private_key(path, |&mut key| {
-            self.hash.update(&key.d[0..(key.d_len as usize)]);
+        with_private_key(path, |key| {
+            self.hash.update(&key.key[0..(key.keylength as usize)]);
             let temp = self.hash.finalize();
             self.hash.clear();
             self.hash.update(&temp.0[32..64]);
@@ -127,11 +133,12 @@ impl Ed25519 {
 
         let path_tmp = self.path.clone();
             trace!("ping");
-        with_public_keys(&path_tmp, |key, _ : &PKH| {
+        with_private_key(&path_tmp, |privkey| {
+            let key = privkey.public_key()?;
             // Note: public key has a byte in front of it in W, from how the ledger's system call
             // works; it's not for ed25519.
             trace!("ping");
-            self.hash.update(&key.W[1..key.W_len as usize]);
+            self.hash.update(&key.pubkey[1..key.keylength as usize]);
             trace!("ping");
             Ok(())
         })?;
@@ -167,7 +174,7 @@ impl Ed25519 {
             // Generate the hashed private key
             let mut rv = CX_BN_FLAG_UNSET;
             hash_ref.clear();
-            hash_ref.update(&key.d[0..(key.d_len as usize)]);
+            hash_ref.update(&key.key[0..(key.keylength as usize)]);
             let mut temp : Zeroizing<_> = hash_ref.finalize();
 
             // Bit twiddling for ed25519
