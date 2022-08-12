@@ -1,8 +1,10 @@
 use arrayvec::{ArrayVec};
 use nanos_sdk::ecc::*;
 use nanos_sdk::io::SyscallError;
+use nanos_sdk::bindings::*;
 
 use crate::common::*;
+use crate::internal::*;
 
 #[derive(Clone,Debug,PartialEq)]
 pub struct EdDSASignature(pub [u8; 64]);
@@ -21,7 +23,9 @@ pub fn with_public_keys<V, A:Address<A, Ed25519PublicKey>>(
   path: &[u32],
   f: impl FnOnce(&nanos_sdk::ecc::ECPublicKey<65, 'E'>, &A) -> Result<V, CryptographyError>
 ) -> Result<V, CryptographyError> {
-    let pubkey = Ed25519::from_bip32(path).public_key()?;
+    let mut pubkey = Ed25519::from_bip32(path).public_key()?;
+    call_c_api_function!(cx_edwards_compress_point_no_throw(CX_CURVE_Ed25519, pubkey.pubkey.as_mut_ptr(), pubkey.keylength as u32))?;
+    pubkey.keylength = 33;
     let pkh = <A as Address<A, Ed25519PublicKey>>::get_address(&pubkey)?;
     f(&pubkey, &pkh)
 }
