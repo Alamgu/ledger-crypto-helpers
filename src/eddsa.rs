@@ -4,7 +4,6 @@ use nanos_sdk::io::SyscallError;
 use nanos_sdk::bindings::*;
 
 use crate::common::*;
-use crate::internal::*;
 
 #[derive(Clone,Debug,PartialEq)]
 pub struct EdDSASignature(pub [u8; 64]);
