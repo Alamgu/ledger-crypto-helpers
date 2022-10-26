@@ -28,7 +28,8 @@ impl <const N: usize> Zeroize for Hash<N> {
 
 impl Write for Blake2b {
     fn write_str(&mut self, s: &str) -> core::fmt::Result {
-        // Using s directly causes segfault on qemu
+        // Using s directly causes segfault on qemu, so we copy.
+        // Issue #5 is getting to the bottom of this and avoiding this workaround.
         let mut buffer: ArrayVec<u8, 256> = ArrayVec::new();
         match buffer.try_extend_from_slice(s.as_bytes()) {
             Ok(()) => {
