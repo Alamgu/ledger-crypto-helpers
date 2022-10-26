@@ -1,5 +1,7 @@
 use core::default::Default;
 use core::fmt;
+use core::fmt::Write;
+use arrayvec::{ArrayVec};
 use nanos_sdk::bindings::*;
 use zeroize::{Zeroize, Zeroizing};
 use base64;
@@ -22,6 +24,20 @@ impl <const N: usize> fmt::Display for Hash<N> {
 
 impl <const N: usize> Zeroize for Hash<N> {
     fn zeroize(&mut self) { self.0.zeroize(); }
+}
+
+impl Write for Blake2b {
+    fn write_str(&mut self, s: &str) -> core::fmt::Result {
+        // Using s directly causes segfault on qemu
+        let mut buffer: ArrayVec<u8, 256> = ArrayVec::new();
+        match buffer.try_extend_from_slice(s.as_bytes()) {
+            Ok(()) => {
+                self.update(buffer.as_slice());
+                Ok(())
+            }
+            _ => { Err(core::fmt::Error) }
+        }
+    }
 }
 
 #[derive(Clone, Copy)]

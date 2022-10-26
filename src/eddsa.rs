@@ -15,7 +15,14 @@ pub fn eddsa_sign(
     path : &ArrayVec<u32, 10>,
     m: &[u8],
 ) -> Result<EdDSASignature, CryptographyError> {
-    let sig = Ed25519::from_bip32(path).sign(m)?;
+    eddsa_sign_int(&Ed25519::from_bip32(path), m)
+}
+
+pub fn eddsa_sign_int(
+    privkey: &ECPrivateKey<32, 'E'>,
+    m: &[u8],
+) -> Result<EdDSASignature, CryptographyError> {
+    let sig = privkey.sign(m)?;
     Ok(EdDSASignature(sig.0))
 }
 
@@ -23,7 +30,14 @@ pub fn with_public_keys<V, A:Address<A, Ed25519PublicKey>>(
   path: &[u32],
   f: impl FnOnce(&nanos_sdk::ecc::ECPublicKey<65, 'E'>, &A) -> Result<V, CryptographyError>
 ) -> Result<V, CryptographyError> {
-    let mut pubkey = Ed25519::from_bip32(path).public_key()?;
+    with_public_keys_int(&Ed25519::from_bip32(path), f)
+}
+
+pub fn with_public_keys_int<V, A:Address<A, Ed25519PublicKey>>(
+  privkey: &ECPrivateKey<32, 'E'>,
+  f: impl FnOnce(&nanos_sdk::ecc::ECPublicKey<65, 'E'>, &A) -> Result<V, CryptographyError>
+) -> Result<V, CryptographyError> {
+    let mut pubkey = privkey.public_key()?;
     call_c_api_function!(cx_edwards_compress_point_no_throw(CX_CURVE_Ed25519, pubkey.pubkey.as_mut_ptr(), pubkey.keylength as u32))?;
     pubkey.keylength = 33;
     let pkh = <A as Address<A, Ed25519PublicKey>>::get_address(&pubkey)?;
