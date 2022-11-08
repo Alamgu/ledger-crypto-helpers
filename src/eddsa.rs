@@ -19,11 +19,12 @@ pub fn eddsa_sign(
     Ok(EdDSASignature(sig.0))
 }
 
-pub fn with_public_keys<V, E, A:Address<A, Ed25519PublicKey>>(
+pub fn with_public_keys<V, E, A:Address<A, Ed25519PublicKey>, F>(
   path: &[u32],
-  f: impl FnOnce(&nanos_sdk::ecc::ECPublicKey<65, 'E'>, &A) -> Result<V, E>
+  f: F,
 ) -> Result<V, E>
-  where E: From<CryptographyError>
+  where E: From<CryptographyError>,
+        F: FnOnce(&nanos_sdk::ecc::ECPublicKey<65, 'E'>, &A) -> Result<V, E>
 {
     let mut pubkey = Ed25519::from_bip32(path).public_key().map_err(Into::<CryptographyError>::into)?;
     call_c_api_function!(cx_edwards_compress_point_no_throw(CX_CURVE_Ed25519, pubkey.pubkey.as_mut_ptr(), pubkey.keylength as u32)).map_err(Into::<CryptographyError>::into)?;
