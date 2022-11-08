@@ -7,6 +7,7 @@ use zeroize::{Zeroizing};
 
 use crate::common::*;
 use crate::hasher::*;
+use crate::eddsa::{Ed25519PublicKey, Ed25519RawPubKeyAddress, ed25519_public_key_bytes, with_public_keys};
 
 struct BnLock;
 
@@ -133,13 +134,11 @@ impl Ed25519 {
 
         let path_tmp = self.path.clone();
             trace!("ping");
-        with_private_key(&path_tmp, |privkey| {
-            let key = privkey.public_key()?;
+        with_public_keys::<_, CryptographyError, _, _>(&path_tmp, |key: &Ed25519PublicKey, _: &Ed25519RawPubKeyAddress| {
             // Note: public key has a byte in front of it in W, from how the ledger's system call
             // works; it's not for ed25519.
             trace!("ping");
-            self.hash.update(&key.pubkey[1..key.keylength as usize]);
-            trace!("ping");
+            self.hash.update(ed25519_public_key_bytes(key));
             Ok(())
         })?;
         Ok(())
