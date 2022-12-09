@@ -1,79 +1,37 @@
-use core::default::Default;
 use core::fmt;
-use ledger_log::*;
 use nanos_sdk::bindings::*;
+use nanos_sdk::ecc::*;
+use arrayvec::{CapacityError};
 use nanos_sdk::io::SyscallError;
 
-use crate::internal::*;
-
-pub fn with_public_keys<V, A:Address<A>>(
-  path: &[u32],
-  f: impl FnOnce(&nanos_sdk::bindings::cx_ecfp_public_key_t, &A) -> Result<V, CryptographyError>
-) -> Result<V, CryptographyError> {
-    let mut pubkey = Default::default();
-    with_private_key(path, |ec_k| {
-        info!("Getting private key");
-        get_pubkey_from_privkey(ec_k, &mut pubkey).ok()?;
-        Ok(())
-    })?;
-    let pkh = <A as Address<A>>::get_address(&pubkey)?;
-    f(&pubkey, &pkh)
-}
-
-pub fn public_key_bytes(key: &nanos_sdk::bindings::cx_ecfp_public_key_t) -> &[u8] {
-    &key.W[1..33]
+pub fn try_option<A>(q: Option<A>) -> Result<A, CryptographyError> {
+    q.ok_or(CryptographyError::NoneError)
 }
 
 // Target chain's notion of an address and how to format one.
 
-pub trait Address<A>: fmt::Display {
-    fn get_address(key: &nanos_sdk::bindings::cx_ecfp_public_key_t) -> Result<A, SyscallError>;
+pub trait Address<A, K>: fmt::Display {
+    fn get_address(key: &K) -> Result<A, SyscallError>;
+    fn get_binary_address(&self) -> &[u8];
 }
 
-pub struct PKH(pub [u8; 20]);
+pub struct PubKey<const N: usize, const T: char>(nanos_sdk::ecc::ECPublicKey<N, T>);
 
-impl Address<PKH> for PKH {
-    fn get_address(key: &nanos_sdk::bindings::cx_ecfp_public_key_t) -> Result<Self, SyscallError> {
-        let mut public_key_hash = [0; 32];
-        let key_bytes = public_key_bytes(key);
-        unsafe {
-            let _len: size_t = cx_hash_sha256(
-                key_bytes.as_ptr(),
-                key_bytes.len() as u32,
-                public_key_hash.as_mut_ptr(),
-                public_key_hash.len() as u32,
-            );
-        }
-        let mut rv=PKH([0; 20]);
-        rv.0.clone_from_slice(&public_key_hash[0..20]);
-        Ok(rv)
+impl<const N: usize, const T: char> Address<PubKey<N, T>, nanos_sdk::ecc::ECPublicKey<N, T>> for PubKey<N, T> {
+    fn get_address(key: &nanos_sdk::ecc::ECPublicKey<N, T>) -> Result<Self, SyscallError> {
+        Ok(PubKey(key.clone()))
+    }
+    fn get_binary_address(&self) -> &[u8] {
+        &self.0.pubkey
     }
 }
-
-impl fmt::Display for PKH {
+impl<const N: usize, const T: char> fmt::Display for PubKey<N, T> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "")?;
-        for byte in self.0 {
-            write!(f, "{:02x}", byte)?;
-        }
-        Ok(())
+        write!(f, "{}", HexSlice(&self.0.pubkey[1..self.0.keylength]))
     }
 }
 
-pub struct PubKey(cx_ecfp_public_key_t);
-
-impl Address<PubKey> for PubKey {
-    fn get_address(key: &nanos_sdk::bindings::cx_ecfp_public_key_t) -> Result<Self, SyscallError> {
-        Ok(PubKey(*key))
-    }
-}
-impl fmt::Display for PubKey {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", HexSlice(&self.0.W[1..self.0.W_len as usize]))
-    }
-}
-
-struct HexSlice<'a>(&'a [u8]);
+pub struct HexSlice<'a>(pub &'a [u8]);
 
 // You can choose to implement multiple traits, like Lower and UpperHex
 impl fmt::Display for HexSlice<'_> {
@@ -92,4 +50,28 @@ extern "C" {
       r: *mut *const u8, r_len: *mut size_t,
       s: *mut *const u8, s_len: *mut size_t,
       ) -> u32;
+}
+
+#[derive(Debug)]
+pub enum CryptographyError {
+  NoneError,
+  SyscallError(SyscallError),
+  CxError(CxError),
+  CapacityError(CapacityError)
+}
+
+impl From<SyscallError> for CryptographyError {
+    fn from(e: SyscallError) -> Self {
+        CryptographyError::SyscallError(e)
+    }
+}
+impl From<CxError> for CryptographyError {
+    fn from(e: CxError) -> Self {
+        CryptographyError::CxError(e)
+    }
+}
+impl From<CapacityError> for CryptographyError {
+    fn from(e: CapacityError) -> Self {
+        CryptographyError::CapacityError(e)
+    }
 }
