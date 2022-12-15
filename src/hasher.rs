@@ -6,10 +6,11 @@ use arrayvec::{ArrayVec};
 use nanos_sdk::bindings::*;
 use zeroize::{Zeroize, Zeroizing};
 
-pub trait Hasher<const N: usize> {
+pub trait Hasher {
+    const N: usize;
     fn new() -> Self;
     fn update(&mut self, bytes: &[u8]);
-    fn finalize<H: Hash<N>>(&mut self) -> H;
+    fn finalize<H: Hash<{ Self::N }>>(&mut self) -> H;
     fn clear(&mut self);
 }
 
@@ -99,7 +100,8 @@ impl Write for Blake2b {
 #[derive(Clone, Copy)]
 pub struct SHA256(cx_sha256_s);
 
-impl Hasher<32> for SHA256 {
+impl Hasher for SHA256 {
+    const N: usize = 32;
     fn new() -> Self {
         let mut rv = cx_sha256_s::default();
         unsafe { cx_sha256_init_no_throw(&mut rv) };
@@ -135,7 +137,8 @@ impl Hasher<32> for SHA256 {
 #[derive(Clone, Copy)]
 pub struct SHA512(cx_sha512_s);
 
-impl Hasher<64> for SHA512 {
+impl Hasher for SHA512 {
+    const N: usize = 64;
     fn new() -> SHA512 {
         let mut rv = cx_sha512_s::default();
         unsafe { cx_sha512_init_no_throw(&mut rv) };
@@ -171,7 +174,8 @@ impl Hasher<64> for SHA512 {
 #[derive(Clone, Copy)]
 pub struct Blake2b(cx_blake2b_s);
 
-impl Hasher<32> for Blake2b {
+impl Hasher for Blake2b {
+    const N: usize = 32;
     fn new() -> Self {
         let mut rv = cx_blake2b_s::default();
         unsafe { cx_blake2b_init_no_throw(&mut rv, 256) };
