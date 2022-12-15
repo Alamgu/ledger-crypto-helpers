@@ -1,33 +1,83 @@
 use core::default::Default;
 use core::fmt;
 use core::fmt::Write;
+use core::ops::DerefMut;
 use arrayvec::{ArrayVec};
 use nanos_sdk::bindings::*;
 use zeroize::{Zeroize, Zeroizing};
-use base64;
 
 pub trait Hasher<const N: usize> {
     fn new() -> Self;
     fn update(&mut self, bytes: &[u8]);
-    fn finalize(&mut self) -> Zeroizing<Hash<N>>;
+    fn finalize<H: Hash<N>>(&mut self) -> H;
     fn clear(&mut self);
 }
 
-#[derive(Clone, Copy)]
-pub struct Hash<const N: usize>(pub [u8; N]);
+pub trait Hash<const N: usize> {
+    fn new(v: [u8; N]) -> Self;
+    fn as_mut_ptr(&mut self)-> *mut u8;
+}
 
-impl <const N: usize> fmt::Display for Hash<N> {
+impl<const N: usize> Hash<N> for [u8; N] {
+    fn new(v: [u8; N]) -> Self { v }
+    fn as_mut_ptr(&mut self) -> *mut u8 { self.as_mut_ptr() }
+}
+
+impl<const N: usize, H: Hash<N> + zeroize::DefaultIsZeroes> Hash<N> for Zeroizing<H> {
+    fn new(v: [u8; N]) -> Self { Zeroizing::new(H::new(v)) }
+    fn as_mut_ptr(&mut self) -> *mut u8 { self.deref_mut().as_mut_ptr() }
+}
+
+#[derive(Clone, Copy)]
+pub struct HexHash<const N: usize>(pub [u8; N]);
+
+impl<const N: usize> Hash<N> for HexHash<N> {
+    fn new(v: [u8; N]) -> Self {
+        HexHash(v)
+    }
+    fn as_mut_ptr(&mut self) -> *mut u8 {
+        self.0[..].as_mut_ptr() // Slice apparently required; hangs if not used.
+    }
+}
+
+impl <const N: usize> fmt::Display for HexHash<N> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", crate::common::HexSlice(&self.0))
+    }
+}
+
+impl <const N: usize> Zeroize for HexHash<N> {
+    fn zeroize(&mut self) { self.0.zeroize(); }
+}
+
+pub struct Base64Hash<const N: usize>(pub [u8; N]);
+
+trait HasBufSize<const N: usize> {
+    const BUF_SIZE: usize = (N/3)*4+4;
+}
+impl<const N: usize> HasBufSize<N> for Base64Hash<N> { }
+
+impl<const N: usize> Hash<N> for Base64Hash<N> {
+    fn new(v: [u8; N]) -> Self {
+        Base64Hash(v)
+    }
+    fn as_mut_ptr(&mut self) -> *mut u8 {
+        self.0[..].as_mut_ptr() // Slice apparently required; hangs if not used.
+    }
+}
+
+impl <const N: usize> fmt::Display for Base64Hash<N> where [(); Self::BUF_SIZE]: {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         // Select a sufficiently large buf size for handling hashes of upto 64 bytes
-        const OUT_BUF_SIZE: usize = (66/3)*4;
-        let mut buf: [u8; OUT_BUF_SIZE] = [0; OUT_BUF_SIZE];
+        // const OUT_BUF_SIZE: usize = (N/3)*4;
+        let mut buf: [u8; Self::BUF_SIZE] = [0; Self::BUF_SIZE];
         let bytes_written = base64::encode_config_slice(self.0, base64::URL_SAFE_NO_PAD, &mut buf);
         let str = core::str::from_utf8(&buf[0..bytes_written]).or(Err(core::fmt::Error))?;
         write!(f, "{}", str)
     }
 }
 
-impl <const N: usize> Zeroize for Hash<N> {
+impl <const N: usize> Zeroize for Base64Hash<N> {
     fn zeroize(&mut self) { self.0.zeroize(); }
 }
 
@@ -70,12 +120,12 @@ impl Hasher<32> for SHA256 {
         }
     }
 
-    fn finalize(&mut self) -> Zeroizing<Hash<32>> {
-        let mut rv = Zeroizing::new(Hash([0; 32]));
+    fn finalize<H: Hash<32>>(&mut self) -> H {
+        let mut rv = H::new([0; 32]);
         unsafe {
             cx_hash_final(
                 &mut self.0 as *mut cx_sha256_s as *mut cx_hash_t,
-                rv.0.as_mut_ptr(),
+                rv.as_mut_ptr(),
             )
         };
         rv
@@ -106,12 +156,12 @@ impl Hasher<64> for SHA512 {
         }
     }
 
-    fn finalize(&mut self) -> Zeroizing<Hash<64>> {
-        let mut rv = Zeroizing::new(Hash([0; 64]));
+    fn finalize<H: Hash<64>>(&mut self) -> H {
+        let mut rv = H::new([0; 64]);
         unsafe {
             cx_hash_final(
                 &mut self.0 as *mut cx_sha512_s as *mut cx_hash_t,
-                rv.0.as_mut_ptr(),
+                rv.as_mut_ptr(),
             )
         };
         rv
@@ -142,12 +192,12 @@ impl Hasher<32> for Blake2b {
         }
     }
 
-    fn finalize(&mut self) -> Zeroizing<Hash<32>> {
-        let mut rv = Zeroizing::new(Hash([0; 32]));
+    fn finalize<H: Hash<32>>(&mut self) -> H {
+        let mut rv = H::new([0; 32]);
         unsafe {
             cx_hash_final(
                 &mut self.0 as *mut cx_blake2b_s as *mut cx_hash_t,
-                rv.0.as_mut_ptr(),
+                rv.as_mut_ptr(),
             )
         };
         rv
