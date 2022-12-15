@@ -18,7 +18,7 @@ pub struct Hash<const N: usize>(pub [u8; N]);
 
 impl <const N: usize> fmt::Display for Hash<N> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        // Select a sufficiently large buf size for handling hashes of upto 64 bytes
+        // Select a sufficiently large buf size for handling hashes of up to 64 bytes
         const OUT_BUF_SIZE: usize = (66/3)*4;
         let mut buf: [u8; OUT_BUF_SIZE] = [0; OUT_BUF_SIZE];
         let bytes_written = base64::encode_config_slice(self.0, base64::URL_SAFE_NO_PAD, &mut buf);
