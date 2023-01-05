@@ -26,11 +26,28 @@ impl Drop for BnLock {
     }
 }
 
+#[derive(Clone, Copy)]
+struct Ed25519Hash([u8; 64]);
+impl Hash<64> for Ed25519Hash {
+    fn new(v: [u8; 64]) -> Self {
+        Ed25519Hash(v)
+    }
+    fn as_mut_ptr(&mut self) -> *mut u8 {
+        self.0.as_mut_ptr()
+    }
+}
+impl Default for Ed25519Hash {
+    fn default() -> Self {
+        Ed25519Hash([0; 64])
+    }
+}
+impl zeroize::DefaultIsZeroes for Ed25519Hash { }
+
 #[derive(Clone)]
 pub struct Ed25519 {
     hash: SHA512,
     path: ArrayVec<u32, 10>,
-    r_pre: Zeroizing<Hash<64>>,
+    r_pre: Zeroizing<Ed25519Hash>,
     r: [u8; 32],
 }
 impl Default for Ed25519 {
@@ -38,7 +55,7 @@ impl Default for Ed25519 {
         Ed25519 {
             hash: SHA512::new(),
             path: ArrayVec::default(),
-            r_pre: Zeroizing::new(Hash([0; 64])),
+            r_pre: Zeroizing::new(Ed25519Hash([0; 64])),
             r: [0; 32]
         }
     }
@@ -67,7 +84,7 @@ impl Ed25519 {
 
         with_private_key(path, |key| {
             self.hash.update(&key.key[0..(key.keylength as usize)]);
-            let temp = self.hash.finalize();
+            let temp : Zeroizing<Ed25519Hash> = self.hash.finalize();
             self.hash.clear();
             self.hash.update(&temp.0[32..64]);
             Ok(())
@@ -75,7 +92,7 @@ impl Ed25519 {
 
         self.path = path.clone();
 
-        self.r_pre = Zeroizing::new(Hash([0; 64]));
+        self.r_pre = Zeroizing::new(Ed25519Hash([0; 64]));
         self.r = [0; 32];
         Ok(())
     }
@@ -157,7 +174,7 @@ impl Ed25519 {
             let _lock = BnLock::lock();
             trace!("finalize lock");
 
-            let mut h_scalar = hash_ref.finalize();
+            let mut h_scalar : Zeroizing<Ed25519Hash> = hash_ref.finalize();
 
             h_scalar.0.reverse();
 
@@ -174,7 +191,7 @@ impl Ed25519 {
             let mut rv = CX_BN_FLAG_UNSET;
             hash_ref.clear();
             hash_ref.update(&key.key[0..(key.keylength as usize)]);
-            let mut temp : Zeroizing<_> = hash_ref.finalize();
+            let mut temp : Zeroizing<Ed25519Hash> = hash_ref.finalize();
 
             // Bit twiddling for ed25519
             temp.0[0] &= 248;
