@@ -24,7 +24,7 @@ impl<const N: usize> Hash<N> for [u8; N] {
     fn as_mut_ptr(&mut self) -> *mut u8 { (self as &mut [u8]).as_mut_ptr() }
 }
 
-impl<const N: usize, H: Hash<N> + zeroize::DefaultIsZeroes> Hash<N> for Zeroizing<H> {
+impl<const N: usize, H: Hash<N> + zeroize::Zeroize> Hash<N> for Zeroizing<H> {
     fn new(v: [u8; N]) -> Self { Zeroizing::new(H::new(v)) }
     fn as_mut_ptr(&mut self) -> *mut u8 { self.deref_mut().as_mut_ptr() }
 }
