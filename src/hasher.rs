@@ -47,7 +47,15 @@ impl <const N: usize> fmt::Display for HexHash<N> {
     }
 }
 
-impl <const N: usize> Zeroize for HexHash<N> {
+impl<const N: usize> Default for HexHash<N> {
+    fn default() -> Self {
+        Self([Default::default(); N])
+    }
+}
+// Skip because Zeroize impl below is more safe re stack usage
+//impl<const N: usize> zeroize::DefaultIsZeroes for HexHash<N> { }
+
+impl<const N: usize> Zeroize for HexHash<N> {
     fn zeroize(&mut self) { self.0.zeroize(); }
 }
 
@@ -77,6 +85,14 @@ impl <const N: usize> fmt::Display for Base64Hash<N> where [(); Self::BUF_SIZE]:
         write!(f, "{}", str)
     }
 }
+
+impl<const N: usize> Default for Base64Hash<N> {
+    fn default() -> Self {
+        Self([Default::default(); N])
+    }
+}
+// Skip because Zeroize impl below is more safe re stack usage
+//impl<const N: usize> zeroize::DefaultIsZeroes for HexHash<N> { }
 
 impl <const N: usize> Zeroize for Base64Hash<N> {
     fn zeroize(&mut self) { self.0.zeroize(); }
