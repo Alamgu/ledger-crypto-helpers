@@ -61,10 +61,9 @@ impl<const N: usize> Zeroize for HexHash<N> {
 
 pub struct Base64Hash<const N: usize>(pub [u8; N]);
 
-trait HasBufSize<const N: usize> {
+impl<const N: usize> Base64Hash<N> {
     const BUF_SIZE: usize = (N/3)*4+4;
 }
-impl<const N: usize> HasBufSize<N> for Base64Hash<N> { }
 
 impl<const N: usize> Hash<N> for Base64Hash<N> {
     fn new(v: [u8; N]) -> Self {
