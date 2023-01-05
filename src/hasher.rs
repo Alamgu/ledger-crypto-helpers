@@ -21,7 +21,7 @@ pub trait Hash<const N: usize> {
 
 impl<const N: usize> Hash<N> for [u8; N] {
     fn new(v: [u8; N]) -> Self { v }
-    fn as_mut_ptr(&mut self) -> *mut u8 { self.as_mut_ptr() }
+    fn as_mut_ptr(&mut self) -> *mut u8 { (self as &mut [u8]).as_mut_ptr() }
 }
 
 impl<const N: usize, H: Hash<N> + zeroize::DefaultIsZeroes> Hash<N> for Zeroizing<H> {
