@@ -25,21 +25,27 @@ pub fn eddsa_sign_int(
     Ok(EdDSASignature(sig.0))
 }
 
-pub fn with_public_keys<V, A:Address<A, Ed25519PublicKey>>(
+pub fn with_public_keys<V, E, A: Address<A, Ed25519PublicKey>, F>(
   path: &[u32],
-  f: impl FnOnce(&nanos_sdk::ecc::ECPublicKey<65, 'E'>, &A) -> Result<V, CryptographyError>
-) -> Result<V, CryptographyError> {
+  f: F,
+) -> Result<V, E>
+  where E: From<CryptographyError>,
+        F: FnOnce(&nanos_sdk::ecc::ECPublicKey<65, 'E'>, &A) -> Result<V, E>
+{
     with_public_keys_int(&Ed25519::from_bip32(path), f)
 }
 
-pub fn with_public_keys_int<V, A:Address<A, Ed25519PublicKey>>(
+pub fn with_public_keys_int<V, E, A: Address<A, Ed25519PublicKey>, F>(
   privkey: &ECPrivateKey<32, 'E'>,
-  f: impl FnOnce(&nanos_sdk::ecc::ECPublicKey<65, 'E'>, &A) -> Result<V, CryptographyError>
-) -> Result<V, CryptographyError> {
-    let mut pubkey = privkey.public_key()?;
-    call_c_api_function!(cx_edwards_compress_point_no_throw(CX_CURVE_Ed25519, pubkey.pubkey.as_mut_ptr(), pubkey.keylength as u32))?;
+  f: F,
+) -> Result<V, E>
+  where E: From<CryptographyError>,
+        F: FnOnce(&nanos_sdk::ecc::ECPublicKey<65, 'E'>, &A) -> Result<V, E>
+{
+    let mut pubkey = privkey.public_key().map_err(Into::<CryptographyError>::into)?;
+    call_c_api_function!(cx_edwards_compress_point_no_throw(CX_CURVE_Ed25519, pubkey.pubkey.as_mut_ptr(), pubkey.keylength as u32)).map_err(Into::<CryptographyError>::into)?;
     pubkey.keylength = 33;
-    let pkh = <A as Address<A, Ed25519PublicKey>>::get_address(&pubkey)?;
+    let pkh = <A as Address<A, Ed25519PublicKey>>::get_address(&pubkey).map_err(Into::<CryptographyError>::into)?;
     f(&pubkey, &pkh)
 }
 
