@@ -98,21 +98,6 @@ impl <const N: usize> Zeroize for Base64Hash<N> {
     fn zeroize(&mut self) { self.0.zeroize(); }
 }
 
-impl Write for Blake2b {
-    fn write_str(&mut self, s: &str) -> core::fmt::Result {
-        // Using s directly causes segfault on qemu, so we copy.
-        // Issue #5 is getting to the bottom of this and avoiding this workaround.
-        let mut buffer: ArrayVec<u8, 256> = ArrayVec::new();
-        match buffer.try_extend_from_slice(s.as_bytes()) {
-            Ok(()) => {
-                self.update(buffer.as_slice());
-                Ok(())
-            }
-            _ => { Err(core::fmt::Error) }
-        }
-    }
-}
-
 #[derive(Clone, Copy)]
 pub struct SHA256(cx_sha256_s);
 
@@ -221,5 +206,20 @@ impl Hasher for Blake2b {
             )
         };
         rv
+    }
+}
+
+impl Write for Blake2b {
+    fn write_str(&mut self, s: &str) -> core::fmt::Result {
+        // Using s directly causes segfault on qemu, so we copy.
+        // Issue #5 is getting to the bottom of this and avoiding this workaround.
+        let mut buffer: ArrayVec<u8, 256> = ArrayVec::new();
+        match buffer.try_extend_from_slice(s.as_bytes()) {
+            Ok(()) => {
+                self.update(buffer.as_slice());
+                Ok(())
+            }
+            _ => { Err(core::fmt::Error) }
+        }
     }
 }
