@@ -69,7 +69,7 @@ impl<const N: usize> Hash<N> for Base64Hash<N> {
 
 impl <const N: usize> fmt::Display for Base64Hash<N> where [(); Self::BUF_SIZE]: {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        // Select a sufficiently large buf size for handling hashes of upto 64 bytes
+        // Select a sufficiently large buf size for handling hashes of up to 64 bytes
         // const OUT_BUF_SIZE: usize = (N/3)*4;
         let mut buf: [u8; Self::BUF_SIZE] = [0; Self::BUF_SIZE];
         let bytes_written = base64::encode_config_slice(self.0, base64::URL_SAFE_NO_PAD, &mut buf);
