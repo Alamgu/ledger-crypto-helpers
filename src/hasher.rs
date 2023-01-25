@@ -1,8 +1,8 @@
+use arrayvec::ArrayVec;
 use core::default::Default;
 use core::fmt;
 use core::fmt::Write;
 use core::ops::DerefMut;
-use arrayvec::{ArrayVec};
 use nanos_sdk::bindings::*;
 use zeroize::{Zeroize, Zeroizing};
 
@@ -16,17 +16,25 @@ pub trait Hasher {
 
 pub trait Hash<const N: usize> {
     fn new(v: [u8; N]) -> Self;
-    fn as_mut_ptr(&mut self)-> *mut u8;
+    fn as_mut_ptr(&mut self) -> *mut u8;
 }
 
 impl<const N: usize> Hash<N> for [u8; N] {
-    fn new(v: [u8; N]) -> Self { v }
-    fn as_mut_ptr(&mut self) -> *mut u8 { (self as &mut [u8]).as_mut_ptr() }
+    fn new(v: [u8; N]) -> Self {
+        v
+    }
+    fn as_mut_ptr(&mut self) -> *mut u8 {
+        (self as &mut [u8]).as_mut_ptr()
+    }
 }
 
 impl<const N: usize, H: Hash<N> + zeroize::Zeroize> Hash<N> for Zeroizing<H> {
-    fn new(v: [u8; N]) -> Self { Zeroizing::new(H::new(v)) }
-    fn as_mut_ptr(&mut self) -> *mut u8 { self.deref_mut().as_mut_ptr() }
+    fn new(v: [u8; N]) -> Self {
+        Zeroizing::new(H::new(v))
+    }
+    fn as_mut_ptr(&mut self) -> *mut u8 {
+        self.deref_mut().as_mut_ptr()
+    }
 }
 
 #[derive(Clone, Copy)]
@@ -41,7 +49,7 @@ impl<const N: usize> Hash<N> for HexHash<N> {
     }
 }
 
-impl <const N: usize> fmt::Display for HexHash<N> {
+impl<const N: usize> fmt::Display for HexHash<N> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", crate::common::HexSlice(&self.0))
     }
@@ -56,13 +64,15 @@ impl<const N: usize> Default for HexHash<N> {
 //impl<const N: usize> zeroize::DefaultIsZeroes for HexHash<N> { }
 
 impl<const N: usize> Zeroize for HexHash<N> {
-    fn zeroize(&mut self) { self.0.zeroize(); }
+    fn zeroize(&mut self) {
+        self.0.zeroize();
+    }
 }
 
 pub struct Base64Hash<const N: usize>(pub [u8; N]);
 
 impl<const N: usize> Base64Hash<N> {
-    const BUF_SIZE: usize = (N/3)*4+4;
+    const BUF_SIZE: usize = (N / 3) * 4 + 4;
 }
 
 impl<const N: usize> Hash<N> for Base64Hash<N> {
@@ -74,7 +84,10 @@ impl<const N: usize> Hash<N> for Base64Hash<N> {
     }
 }
 
-impl <const N: usize> fmt::Display for Base64Hash<N> where [(); Self::BUF_SIZE]: {
+impl<const N: usize> fmt::Display for Base64Hash<N>
+where
+    [(); Self::BUF_SIZE]:,
+{
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         // Select a sufficiently large buf size for handling hashes of up to 64 bytes
         // const OUT_BUF_SIZE: usize = (N/3)*4;
@@ -93,8 +106,10 @@ impl<const N: usize> Default for Base64Hash<N> {
 // Skip because Zeroize impl below is more safe re stack usage
 //impl<const N: usize> zeroize::DefaultIsZeroes for HexHash<N> { }
 
-impl <const N: usize> Zeroize for Base64Hash<N> {
-    fn zeroize(&mut self) { self.0.zeroize(); }
+impl<const N: usize> Zeroize for Base64Hash<N> {
+    fn zeroize(&mut self) {
+        self.0.zeroize();
+    }
 }
 
 #[derive(Clone, Copy)]
@@ -218,7 +233,7 @@ impl Write for Blake2b {
                 self.update(buffer.as_slice());
                 Ok(())
             }
-            _ => { Err(core::fmt::Error) }
+            _ => Err(core::fmt::Error),
         }
     }
 }

@@ -22,4 +22,3 @@ macro_rules! call_c_api_function {
         }
     }
 }
-
