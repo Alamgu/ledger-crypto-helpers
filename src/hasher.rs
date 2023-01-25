@@ -186,6 +186,41 @@ impl Hasher for SHA512 {
     }
 }
 
+impl Hasher for SHA3 {
+    const N: usize = 25;
+    fn new() -> SHA3 {
+        let mut rv = cx_sha3_s::default();
+        unsafe { cx_sha3_init_no_throw(&mut rv) };
+        Self(rv)
+    }
+
+    fn clear(&mut self) {
+        unsafe { cx_sha3_init_no_throw(&mut self.0) };
+    }
+
+    fn update(&mut self, bytes: &[u8]) {
+        unsafe {
+            cx_hash_update(
+                &mut self.0 as *mut cx_sha3_s as *mut cx_hash_t,
+                bytes.as_ptr(),
+                bytes.len() as u32,
+            );
+        }
+    }
+
+    fn finalize<H: Hash<25>>(&mut self) -> H {
+        let mut rv = H::new([0; 25]);
+        unsafe {
+            cx_hash_final(
+                &mut self.0 as *mut cx_sha3_s as *mut cx_hash_t,
+                rv.as_mut_ptr(),
+            )
+        };
+        rv
+    }
+}
+
+
 #[derive(Clone, Copy)]
 pub struct Blake2b(cx_blake2b_s);
 
