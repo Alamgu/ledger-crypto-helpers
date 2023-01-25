@@ -1,7 +1,7 @@
+use arrayvec::CapacityError;
 use core::fmt;
 use nanos_sdk::bindings::*;
 use nanos_sdk::ecc::*;
-use arrayvec::{CapacityError};
 use nanos_sdk::io::SyscallError;
 
 pub fn try_option<A>(q: Option<A>) -> Result<A, CryptographyError> {
@@ -17,7 +17,9 @@ pub trait Address<A, K>: fmt::Display {
 
 pub struct PubKey<const N: usize, const T: char>(nanos_sdk::ecc::ECPublicKey<N, T>);
 
-impl<const N: usize, const T: char> Address<PubKey<N, T>, nanos_sdk::ecc::ECPublicKey<N, T>> for PubKey<N, T> {
+impl<const N: usize, const T: char> Address<PubKey<N, T>, nanos_sdk::ecc::ECPublicKey<N, T>>
+    for PubKey<N, T>
+{
     fn get_address(key: &nanos_sdk::ecc::ECPublicKey<N, T>) -> Result<Self, SyscallError> {
         Ok(PubKey(key.clone()))
     }
@@ -45,19 +47,23 @@ impl fmt::Display for HexSlice<'_> {
 }
 
 extern "C" {
-  pub fn cx_ecfp_decode_sig_der(input: *const u8, input_len: size_t,
-      max_size: size_t,
-      r: *mut *const u8, r_len: *mut size_t,
-      s: *mut *const u8, s_len: *mut size_t,
-      ) -> u32;
+    pub fn cx_ecfp_decode_sig_der(
+        input: *const u8,
+        input_len: size_t,
+        max_size: size_t,
+        r: *mut *const u8,
+        r_len: *mut size_t,
+        s: *mut *const u8,
+        s_len: *mut size_t,
+    ) -> u32;
 }
 
 #[derive(Debug)]
 pub enum CryptographyError {
-  NoneError,
-  SyscallError(SyscallError),
-  CxError(CxError),
-  CapacityError(CapacityError)
+    NoneError,
+    SyscallError(SyscallError),
+    CxError(CxError),
+    CapacityError(CapacityError),
 }
 
 impl From<SyscallError> for CryptographyError {
