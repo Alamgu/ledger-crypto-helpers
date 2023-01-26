@@ -1,4 +1,5 @@
 use arrayvec::ArrayVec;
+use core::convert::TryInto;
 use core::default::Default;
 use core::fmt;
 use core::fmt::Write;
@@ -179,6 +180,48 @@ impl Hasher for SHA512 {
         unsafe {
             cx_hash_final(
                 &mut self.0 as *mut cx_sha512_s as *mut cx_hash_t,
+                rv.as_mut_ptr(),
+            )
+        };
+        rv
+    }
+}
+
+#[derive(Clone, Copy)]
+struct SHA3<const N: usize>(cx_sha3_s);
+
+pub type SHA3_224 = SHA3<{ 224 / 8 }>;
+pub type SHA3_256 = SHA3<{ 256 / 8 }>;
+pub type SHA3_384 = SHA3<{ 384 / 8 }>;
+pub type SHA3_512 = SHA3<{ 512 / 8 }>;
+
+impl<const N: usize> Hasher for SHA3<N> {
+    const N: usize = N;
+    fn new() -> SHA3<N> {
+        let mut rv = Self(cx_sha3_s::default());
+        rv.clear();
+        rv
+    }
+
+    fn clear(&mut self) {
+        unsafe { cx_sha3_init_no_throw(&mut self.0, (N * 8).try_into().unwrap()) };
+    }
+
+    fn update(&mut self, bytes: &[u8]) {
+        unsafe {
+            cx_hash_update(
+                &mut self.0 as *mut cx_sha3_s as *mut cx_hash_t,
+                bytes.as_ptr(),
+                bytes.len() as u32,
+            );
+        }
+    }
+
+    fn finalize<H: Hash<{ Self::N }>>(&mut self) -> H {
+        let mut rv = H::new([0; { Self::N }]);
+        unsafe {
+            cx_hash_final(
+                &mut self.0 as *mut cx_sha3_s as *mut cx_hash_t,
                 rv.as_mut_ptr(),
             )
         };
