@@ -3,6 +3,7 @@ use core::default::Default;
 use core::fmt;
 use core::fmt::Write;
 use core::ops::DerefMut;
+use core::convert::TryInto;
 use nanos_sdk::bindings::*;
 use zeroize::{Zeroize, Zeroizing};
 
@@ -186,16 +187,24 @@ impl Hasher for SHA512 {
     }
 }
 
-impl Hasher for SHA3 {
-    const N: usize = 25;
-    fn new() -> SHA3 {
-        let mut rv = cx_sha3_s::default();
-        unsafe { cx_sha3_init_no_throw(&mut rv) };
-        Self(rv)
+#[derive(Clone, Copy)]
+struct SHA3<const N: usize>(cx_sha3_s);
+
+pub type SHA3_224 = SHA3<{224 / 8}>;
+pub type SHA3_256 = SHA3<{256 / 8}>;
+pub type SHA3_384 = SHA3<{384 / 8}>;
+pub type SHA3_512 = SHA3<{512 / 8}>;
+
+impl<const N: usize> Hasher for SHA3<N> {
+    const N: usize = N;
+    fn new() -> SHA3<N> {
+        let mut rv = Self(cx_sha3_s::default());
+        rv.clear();
+        rv
     }
 
     fn clear(&mut self) {
-        unsafe { cx_sha3_init_no_throw(&mut self.0) };
+        unsafe { cx_sha3_init_no_throw(&mut self.0, (N * 8).try_into().unwrap() ) };
     }
 
     fn update(&mut self, bytes: &[u8]) {
@@ -208,8 +217,8 @@ impl Hasher for SHA3 {
         }
     }
 
-    fn finalize<H: Hash<25>>(&mut self) -> H {
-        let mut rv = H::new([0; 25]);
+    fn finalize<H: Hash<{ Self::N }>>(&mut self) -> H {
+        let mut rv = H::new([0; { Self::N }]);
         unsafe {
             cx_hash_final(
                 &mut self.0 as *mut cx_sha3_s as *mut cx_hash_t,
