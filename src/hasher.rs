@@ -188,7 +188,7 @@ impl Hasher for SHA512 {
 }
 
 #[derive(Clone, Copy)]
-struct SHA3<const N: usize>(cx_sha3_s);
+pub struct SHA3<const N: usize>(cx_sha3_s);
 
 pub type SHA3_224 = SHA3<{ 224 / 8 }>;
 pub type SHA3_256 = SHA3<{ 256 / 8 }>;
