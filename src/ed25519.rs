@@ -75,16 +75,16 @@ pub struct Ed25519Signature(pub [u8; 64]);
 
 impl Ed25519 {
     #[inline(never)]
-    pub fn new(path: &ArrayVec<u32, 10>) -> Result<Ed25519, CryptographyError> {
+    pub fn new(path: ArrayVec<u32, 10>) -> Result<Ed25519, CryptographyError> {
         let mut rv = Self::default();
         rv.init(path)?;
         Ok(rv)
     }
     #[inline(never)]
-    pub fn init(&mut self, path: &ArrayVec<u32, 10>) -> Result<(), CryptographyError> {
+    pub fn init(&mut self, path: ArrayVec<u32, 10>) -> Result<(), CryptographyError> {
         self.hash.clear();
 
-        with_private_key(path, |key| {
+        with_private_key(&path, |key| {
             self.hash.update(&key.key[0..(key.keylength as usize)]);
             let temp: Zeroizing<Ed25519Hash> = self.hash.finalize();
             self.hash.clear();
@@ -92,7 +92,7 @@ impl Ed25519 {
             Ok(())
         })?;
 
-        self.path = path.clone();
+        self.path = path;
 
         self.r_pre = Zeroizing::new(Ed25519Hash([0; 64]));
         self.r = [0; 32];
