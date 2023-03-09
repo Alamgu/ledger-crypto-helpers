@@ -11,7 +11,7 @@ pub struct EdDSASignature(pub [u8; 64]);
 pub type Ed25519PublicKey = ECPublicKey<65, 'E'>;
 
 pub fn eddsa_sign(path: &ArrayVec<u32, 10>, m: &[u8]) -> Result<EdDSASignature, CryptographyError> {
-    eddsa_sign_int(&Ed25519::from_bip32(path), m)
+    eddsa_sign_int(&Ed25519::derive_from_path(path), m)
 }
 
 pub fn eddsa_sign_int(
@@ -30,7 +30,7 @@ where
     E: From<CryptographyError>,
     F: FnOnce(&nanos_sdk::ecc::ECPublicKey<65, 'E'>, &A) -> Result<V, E>,
 {
-    with_public_keys_int(&Ed25519::from_bip32(path), f)
+    with_public_keys_int(&Ed25519::derive_from_path(path), f)
 }
 
 pub fn with_public_keys_int<V, E, A: Address<A, Ed25519PublicKey>, F>(
