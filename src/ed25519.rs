@@ -2,6 +2,7 @@ use arrayvec::ArrayVec;
 use core::default::Default;
 use ledger_log::*;
 use nanos_sdk::bindings::*;
+use nanos_sdk::ecc::SeedDerive;
 use nanos_sdk::io::SyscallError;
 use zeroize::Zeroizing;
 
@@ -67,7 +68,7 @@ pub fn with_private_key<A>(
     path: &[u32],
     f: impl FnOnce(&mut nanos_sdk::ecc::ECPrivateKey<32, 'E'>) -> Result<A, CryptographyError>,
 ) -> Result<A, CryptographyError> {
-    f(&mut nanos_sdk::ecc::Ed25519::from_bip32(path))
+    f(&mut nanos_sdk::ecc::Ed25519::derive_from_path(path))
 }
 
 #[derive(Clone, Debug, PartialEq)]
