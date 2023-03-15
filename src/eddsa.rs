@@ -22,15 +22,28 @@ pub fn eddsa_sign_int(
     Ok(EdDSASignature(sig.0))
 }
 
+pub fn with_private_key<A, E>(
+    path: &[u32],
+    slip10: bool,
+    f: impl FnOnce(&mut nanos_sdk::ecc::ECPrivateKey<32, 'E'>) -> Result<A, E>,
+) -> Result<A, E> {
+    if slip10 {
+        f(&mut ed25519_derive_from_path_slip10(path))
+    } else {
+        f(&mut nanos_sdk::ecc::Ed25519::derive_from_path(path))
+    }
+}
+
 pub fn with_public_keys<V, E, A: Address<A, Ed25519PublicKey>, F>(
     path: &[u32],
+    slip10: bool,
     f: F,
 ) -> Result<V, E>
 where
     E: From<CryptographyError>,
     F: FnOnce(&nanos_sdk::ecc::ECPublicKey<65, 'E'>, &A) -> Result<V, E>,
 {
-    with_public_keys_int(&Ed25519::derive_from_path(path), f)
+    with_private_key(path, slip10, |k| with_public_keys_int(k, f))
 }
 
 pub fn with_public_keys_int<V, E, A: Address<A, Ed25519PublicKey>, F>(
@@ -76,4 +89,27 @@ impl core::fmt::Display for Ed25519RawPubKeyAddress {
 
 pub fn ed25519_public_key_bytes(key: &Ed25519PublicKey) -> &[u8] {
     &key.pubkey[1..33]
+}
+
+fn ed25519_derive_from_path_slip10(path: &[u32]) -> ECPrivateKey<32, 'E'> {
+    let mut tmp = [0; 96];
+    let seed_key: &mut [u8; 12] = &mut [0; 12];
+    seed_key.copy_from_slice(b"ed25519 seed");
+    unsafe {
+        os_perso_derive_node_with_seed_key(
+            HDW_ED25519_SLIP10,
+            CurvesId::Ed25519 as u8,
+            path.as_ptr(),
+            path.len() as u32,
+            tmp.as_mut_ptr(),
+            core::ptr::null_mut(),
+            seed_key.as_mut_ptr(),
+            12,
+        );
+    }
+    let mut sk = ECPrivateKey::new(CurvesId::Ed25519);
+    let keylen = sk.key.len();
+    sk.key.copy_from_slice(&tmp[..keylen]);
+    tmp.copy_from_slice(&[0; 96]);
+    sk
 }

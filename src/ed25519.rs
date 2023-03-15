@@ -2,13 +2,13 @@ use arrayvec::ArrayVec;
 use core::default::Default;
 use ledger_log::*;
 use nanos_sdk::bindings::*;
-use nanos_sdk::ecc::SeedDerive;
 use nanos_sdk::io::SyscallError;
 use zeroize::Zeroizing;
 
 use crate::common::*;
 use crate::eddsa::{
-    ed25519_public_key_bytes, with_public_keys, Ed25519PublicKey, Ed25519RawPubKeyAddress,
+    ed25519_public_key_bytes, with_private_key, with_public_keys, Ed25519PublicKey,
+    Ed25519RawPubKeyAddress,
 };
 use crate::hasher::*;
 
@@ -52,6 +52,7 @@ pub struct Ed25519 {
     path: ArrayVec<u32, 10>,
     r_pre: Zeroizing<Ed25519Hash>,
     r: [u8; 32],
+    slip10: bool,
 }
 impl Default for Ed25519 {
     fn default() -> Ed25519 {
@@ -60,15 +61,9 @@ impl Default for Ed25519 {
             path: ArrayVec::default(),
             r_pre: Zeroizing::new(Ed25519Hash([0; 64])),
             r: [0; 32],
+            slip10: false,
         }
     }
-}
-
-pub fn with_private_key<A>(
-    path: &[u32],
-    f: impl FnOnce(&mut nanos_sdk::ecc::ECPrivateKey<32, 'E'>) -> Result<A, CryptographyError>,
-) -> Result<A, CryptographyError> {
-    f(&mut nanos_sdk::ecc::Ed25519::derive_from_path(path))
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -76,8 +71,9 @@ pub struct Ed25519Signature(pub [u8; 64]);
 
 impl Ed25519 {
     #[inline(never)]
-    pub fn new(path: ArrayVec<u32, 10>) -> Result<Ed25519, CryptographyError> {
+    pub fn new(path: ArrayVec<u32, 10>, slip10: bool) -> Result<Ed25519, CryptographyError> {
         let mut rv = Self::default();
+        rv.slip10 = slip10;
         rv.init(path)?;
         Ok(rv)
     }
@@ -85,12 +81,12 @@ impl Ed25519 {
     pub fn init(&mut self, path: ArrayVec<u32, 10>) -> Result<(), CryptographyError> {
         self.hash.clear();
 
-        with_private_key(&path, |key| {
+        with_private_key(&path, self.slip10, |key| {
             self.hash.update(&key.key[0..(key.keylength as usize)]);
             let temp: Zeroizing<Ed25519Hash> = self.hash.finalize();
             self.hash.clear();
             self.hash.update(&temp.0[32..64]);
-            Ok(())
+            Ok::<(), CryptographyError>(())
         })?;
 
         self.path = path;
@@ -169,6 +165,7 @@ impl Ed25519 {
         trace!("ping");
         with_public_keys::<_, CryptographyError, _, _>(
             &path_tmp,
+            self.slip10,
             |key: &Ed25519PublicKey, _: &Ed25519RawPubKeyAddress| {
                 // Note: public key has a byte in front of it in W, from how the ledger's system call
                 // works; it's not for ed25519.
@@ -187,7 +184,7 @@ impl Ed25519 {
         // Need to make a variable for this.hash so that the closure doesn't capture all of self,
         // including self.path
         let hash_ref = &mut self.hash;
-        let (h_a, _lock, ed25519_order) = with_private_key(&self.path, |key| {
+        let (h_a, _lock, ed25519_order) = with_private_key(&self.path, self.slip10, |key| {
             let _lock = BnLock::lock();
             trace!("finalize lock");
 
@@ -246,7 +243,7 @@ impl Ed25519 {
             // Destroy the private key, so it doesn't leak from with_private_key even in the bn
             // area. temp will zeroize on drop already.
             call_c_api_function!(cx_bn_destroy(&mut key_bn))?;
-            Ok((rv, _lock, ed25519_order))
+            Ok::<_, CryptographyError>((rv, _lock, ed25519_order))
         })?;
 
         // Reload the r value into the bn area
