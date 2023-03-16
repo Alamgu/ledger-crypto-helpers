@@ -10,8 +10,12 @@ pub struct EdDSASignature(pub [u8; 64]);
 
 pub type Ed25519PublicKey = ECPublicKey<65, 'E'>;
 
-pub fn eddsa_sign(path: &ArrayVec<u32, 10>, m: &[u8]) -> Result<EdDSASignature, CryptographyError> {
-    eddsa_sign_int(&Ed25519::derive_from_path(path), m)
+pub fn eddsa_sign(
+    path: &ArrayVec<u32, 10>,
+    slip10: bool,
+    m: &[u8],
+) -> Result<EdDSASignature, CryptographyError> {
+    with_private_key(path, slip10, |k| eddsa_sign_int(k, m))
 }
 
 pub fn eddsa_sign_int(
