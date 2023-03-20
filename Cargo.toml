@@ -10,8 +10,9 @@ nanos_sdk = { git = "https://github.com/LedgerHQ/ledger-nanos-sdk.git" }
 ledger-log = { git = "https://github.com/alamgu/ledger-log.git" }
 zeroize = { version = "1.5.2", default-features = false }
 
-[target.dev-dependencies]
+[dev-dependencies]
 testmacro = { git = "https://github.com/yhql/testmacro" }
+nanos_sdk = { git = "https://github.com/LedgerHQ/ledger-nanos-sdk.git", features = [ "speculos" ] }
 
 [patch."https://github.com/LedgerHQ/ledger-nanos-sdk.git".nanos_sdk]
 git = "https://github.com/alamgu/ledger-nanos-sdk.git"
