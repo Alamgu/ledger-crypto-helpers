@@ -52,7 +52,14 @@ jobs:
           toolchain: nightly
           override: true
           components: rust-src, clippy
-      - uses: actions/checkout@v3
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Checkout SDK (targets)
+        uses: actions/checkout@v3
+        with:
+          repository: 'alamgu/ledger-nanos-sdk'
+          ref: memory-fixes
+          path: rsdk
       - name: Cargo clippy
         uses: actions-rs/cargo@v1
         with:
@@ -89,7 +96,7 @@ jobs:
           repository: 'alamgu/ledger-nanos-sdk'
           ref: memory-fixes
           path: rsdk
-      - run: echo "/rsdk/scripts" >> $GITHUB_PATH
+      - run: echo "$PWD/rsdk/scripts" >> $GITHUB_PATH
       - name: Cargo build
         uses: actions-rs/cargo@v1
         with:
@@ -119,7 +126,6 @@ jobs:
           toolchain: nightly
           override: true
           components: rust-src
-      - run: echo "$PWD/scripts" >> $GITHUB_PATH
       - name: Install dependencies
         run: |
           sudo apt-get update && sudo apt-get install -y qemu-user-static
@@ -132,7 +138,7 @@ jobs:
           repository: 'alamgu/ledger-nanos-sdk'
           ref: memory-fixes
           path: rsdk
-      - run: echo "/rsdk/scripts" >> $GITHUB_PATH
+      - run: echo "$PWD/rsdk/scripts" >> $GITHUB_PATH
       - name: Unit tests
         uses: actions-rs/cargo@v1
         with:
