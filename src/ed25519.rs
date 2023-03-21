@@ -260,6 +260,9 @@ impl Ed25519 {
         call_c_api_function!(cx_bn_alloc(&mut s, 64))?;
         call_c_api_function!(cx_bn_mod_add(s, h_a, r, ed25519_order))?;
 
+        // Spooky sub 0 to avoid Nano S+ bug
+        call_c_api_function!(cx_bn_set_u32(r, 0))?;
+        call_c_api_function!(cx_bn_mod_sub(s, s, r, ed25519_order))?;
         // and copy s back to normal memory to return.
         let mut s_bytes = [0; 32];
         call_c_api_function!(cx_bn_export(s, s_bytes.as_mut_ptr(), s_bytes.len() as u32))?;
