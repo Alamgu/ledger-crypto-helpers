@@ -1,4 +1,3 @@
-use arrayvec::ArrayVec;
 use core::convert::TryInto;
 use core::default::Default;
 use core::fmt;
@@ -268,15 +267,7 @@ impl Hasher for Blake2b {
 
 impl Write for Blake2b {
     fn write_str(&mut self, s: &str) -> core::fmt::Result {
-        // Using s directly causes segfault on qemu, so we copy.
-        // Issue #5 is getting to the bottom of this and avoiding this workaround.
-        let mut buffer: ArrayVec<u8, 256> = ArrayVec::new();
-        match buffer.try_extend_from_slice(s.as_bytes()) {
-            Ok(()) => {
-                self.update(buffer.as_slice());
-                Ok(())
-            }
-            _ => Err(core::fmt::Error),
-        }
+        self.update(s.as_bytes());
+        Ok(())
     }
 }
