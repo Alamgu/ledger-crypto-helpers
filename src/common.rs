@@ -1,8 +1,8 @@
 use arrayvec::CapacityError;
 use core::fmt;
-use nanos_sdk::bindings::*;
-use nanos_sdk::ecc::*;
-use nanos_sdk::io::SyscallError;
+use ledger_secure_sdk_sys::*;
+use ledger_device_sdk::ecc::*;
+use ledger_device_sdk::io::SyscallError;
 
 pub fn try_option<A>(q: Option<A>) -> Result<A, CryptographyError> {
     q.ok_or(CryptographyError::NoneError)
@@ -15,12 +15,12 @@ pub trait Address<A, K>: fmt::Display {
     fn get_binary_address(&self) -> &[u8];
 }
 
-pub struct PubKey<const N: usize, const T: char>(nanos_sdk::ecc::ECPublicKey<N, T>);
+pub struct PubKey<const N: usize, const T: char>(ledger_device_sdk::ecc::ECPublicKey<N, T>);
 
-impl<const N: usize, const T: char> Address<PubKey<N, T>, nanos_sdk::ecc::ECPublicKey<N, T>>
+impl<const N: usize, const T: char> Address<PubKey<N, T>, ledger_device_sdk::ecc::ECPublicKey<N, T>>
     for PubKey<N, T>
 {
-    fn get_address(key: &nanos_sdk::ecc::ECPublicKey<N, T>) -> Result<Self, SyscallError> {
+    fn get_address(key: &ledger_device_sdk::ecc::ECPublicKey<N, T>) -> Result<Self, SyscallError> {
         Ok(PubKey(key.clone()))
     }
     fn get_binary_address(&self) -> &[u8] {
@@ -49,12 +49,12 @@ impl fmt::Display for HexSlice<'_> {
 extern "C" {
     pub fn cx_ecfp_decode_sig_der(
         input: *const u8,
-        input_len: size_t,
-        max_size: size_t,
+        input_len: __size_t,
+        max_size: __size_t,
         r: *mut *const u8,
-        r_len: *mut size_t,
+        r_len: *mut __size_t,
         s: *mut *const u8,
-        s_len: *mut size_t,
+        s_len: *mut __size_t,
     ) -> u32;
 }
 

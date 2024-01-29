@@ -3,7 +3,7 @@ use core::default::Default;
 use core::fmt;
 use core::fmt::Write;
 use core::ops::DerefMut;
-use nanos_sdk::bindings::*;
+use ledger_secure_sdk_sys::*;
 use zeroize::{Zeroize, Zeroizing};
 
 pub trait Hasher {
@@ -132,7 +132,7 @@ impl Hasher for SHA256 {
             cx_hash_update(
                 &mut self.0 as *mut cx_sha256_s as *mut cx_hash_t,
                 bytes.as_ptr(),
-                bytes.len() as u32,
+                bytes.len(),
             );
         }
     }
@@ -169,7 +169,7 @@ impl Hasher for SHA512 {
             cx_hash_update(
                 &mut self.0 as *mut cx_sha512_s as *mut cx_hash_t,
                 bytes.as_ptr(),
-                bytes.len() as u32,
+                bytes.len(),
             );
         }
     }
@@ -211,7 +211,7 @@ impl<const N: usize> Hasher for SHA3<N> {
             cx_hash_update(
                 &mut self.0 as *mut cx_sha3_s as *mut cx_hash_t,
                 bytes.as_ptr(),
-                bytes.len() as u32,
+                bytes.len(),
             );
         }
     }
@@ -248,7 +248,7 @@ impl Hasher for Blake2b {
             cx_hash_update(
                 &mut self.0 as *mut cx_blake2b_s as *mut cx_hash_t,
                 bytes.as_ptr(),
-                bytes.len() as u32,
+                bytes.len(),
             );
         }
     }

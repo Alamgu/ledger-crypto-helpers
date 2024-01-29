@@ -1,20 +1,17 @@
 [package]
 name = "ledger-crypto-helpers"
-version = "0.2.0"
+version = "0.2.1"
 edition = "2018"
 
 [dev-dependencies]
-nanos_sdk = { git = "https://github.com/LedgerHQ/ledger-nanos-sdk.git", features = [ "speculos" ] }
+ledger_device_sdk = { version = "1.4.3", features = [ "speculos" ] }
 testmacro = { git = "https://github.com/yhql/testmacro"}
 hex-literal = "0.3"
 
 [dependencies]
 arrayvec = { version = "0.7.1", default-features = false }
 base64 = { version = "0.13.0", default-features = false }
-nanos_sdk = { git = "https://github.com/LedgerHQ/ledger-nanos-sdk.git" }
 ledger-log = { git = "https://github.com/alamgu/ledger-log.git" }
+ledger_device_sdk = "1.4.3"
+ledger_secure_sdk_sys = "1.1.0"
 zeroize = { version = "1.5.2", default-features = false }
-
-[patch."https://github.com/LedgerHQ/ledger-nanos-sdk.git".nanos_sdk]
-git = "https://github.com/alamgu/ledger-nanos-sdk.git"
-branch = "relocating-loader-w-fixes"

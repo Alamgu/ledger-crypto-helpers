@@ -1,7 +1,7 @@
 use arrayvec::ArrayVec;
-use nanos_sdk::bindings::*;
-use nanos_sdk::ecc::*;
-use nanos_sdk::io::SyscallError;
+use ledger_secure_sdk_sys::*;
+use ledger_device_sdk::ecc::*;
+use ledger_device_sdk::io::SyscallError;
 
 use crate::common::*;
 
@@ -29,12 +29,12 @@ pub fn eddsa_sign_int(
 pub fn with_private_key<A, E>(
     path: &[u32],
     slip10: bool,
-    f: impl FnOnce(&mut nanos_sdk::ecc::ECPrivateKey<32, 'E'>) -> Result<A, E>,
+    f: impl FnOnce(&mut ledger_device_sdk::ecc::ECPrivateKey<32, 'E'>) -> Result<A, E>,
 ) -> Result<A, E> {
     if slip10 {
         f(&mut ed25519_derive_from_path_slip10(path))
     } else {
-        f(&mut nanos_sdk::ecc::Ed25519::derive_from_path(path))
+        f(&mut ledger_device_sdk::ecc::Ed25519::derive_from_path(path))
     }
 }
 
@@ -45,7 +45,7 @@ pub fn with_public_keys<V, E, A: Address<A, Ed25519PublicKey>, F>(
 ) -> Result<V, E>
 where
     E: From<CryptographyError>,
-    F: FnOnce(&nanos_sdk::ecc::ECPublicKey<65, 'E'>, &A) -> Result<V, E>,
+    F: FnOnce(&ledger_device_sdk::ecc::ECPublicKey<65, 'E'>, &A) -> Result<V, E>,
 {
     with_private_key(path, slip10, |k| with_public_keys_int(k, f))
 }
@@ -56,7 +56,7 @@ pub fn with_public_keys_int<V, E, A: Address<A, Ed25519PublicKey>, F>(
 ) -> Result<V, E>
 where
     E: From<CryptographyError>,
-    F: FnOnce(&nanos_sdk::ecc::ECPublicKey<65, 'E'>, &A) -> Result<V, E>,
+    F: FnOnce(&ledger_device_sdk::ecc::ECPublicKey<65, 'E'>, &A) -> Result<V, E>,
 {
     let mut pubkey = privkey
         .public_key()
@@ -64,7 +64,7 @@ where
     call_c_api_function!(cx_edwards_compress_point_no_throw(
         CX_CURVE_Ed25519,
         pubkey.pubkey.as_mut_ptr(),
-        pubkey.keylength as u32
+        pubkey.keylength
     ))
     .map_err(Into::<CryptographyError>::into)?;
     pubkey.keylength = 33;
@@ -73,12 +73,12 @@ where
     f(&pubkey, &pkh)
 }
 
-pub struct Ed25519RawPubKeyAddress(nanos_sdk::ecc::ECPublicKey<65, 'E'>);
+pub struct Ed25519RawPubKeyAddress(ledger_device_sdk::ecc::ECPublicKey<65, 'E'>);
 
-impl Address<Ed25519RawPubKeyAddress, nanos_sdk::ecc::ECPublicKey<65, 'E'>>
+impl Address<Ed25519RawPubKeyAddress, ledger_device_sdk::ecc::ECPublicKey<65, 'E'>>
     for Ed25519RawPubKeyAddress
 {
-    fn get_address(key: &nanos_sdk::ecc::ECPublicKey<65, 'E'>) -> Result<Self, SyscallError> {
+    fn get_address(key: &ledger_device_sdk::ecc::ECPublicKey<65, 'E'>) -> Result<Self, SyscallError> {
         Ok(Ed25519RawPubKeyAddress(key.clone()))
     }
     fn get_binary_address(&self) -> &[u8] {

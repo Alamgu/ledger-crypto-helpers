@@ -1,8 +1,8 @@
 use arrayvec::ArrayVec;
 use core::default::Default;
 use ledger_log::*;
-use nanos_sdk::bindings::*;
-use nanos_sdk::io::SyscallError;
+use ledger_secure_sdk_sys::*;
+use ledger_device_sdk::io::SyscallError;
 use zeroize::Zeroizing;
 
 use crate::common::*;
@@ -118,7 +118,7 @@ impl Ed25519 {
                 &mut r as *mut cx_bn_t,
                 64,
                 self.r_pre.0.as_ptr(),
-                self.r_pre.0.len() as u32
+                self.r_pre.0.len()
             ))?;
             trace!("ping");
 
@@ -140,7 +140,7 @@ impl Ed25519 {
             call_c_api_function!(cx_ecpoint_compress(
                 &ed_p,
                 self.r.as_mut_ptr(),
-                self.r.len() as u32,
+                self.r.len(),
                 &mut sign
             ))?;
             trace!("ping");
@@ -198,7 +198,7 @@ impl Ed25519 {
                 &mut h_scalar_bn as *mut cx_bn_t,
                 64,
                 h_scalar.0.as_ptr(),
-                h_scalar.0.len() as u32
+                h_scalar.0.len()
             ))?;
 
             // Get the group order
@@ -231,7 +231,7 @@ impl Ed25519 {
                 &mut key_bn as *mut cx_bn_t,
                 64,
                 key_slice.as_ptr(),
-                key_slice.len() as u32
+                key_slice.len()
             ))?;
             hash_ref.clear();
 
@@ -252,7 +252,7 @@ impl Ed25519 {
             &mut r as *mut cx_bn_t,
             64,
             self.r_pre.0.as_ptr(),
-            self.r_pre.0.len() as u32
+            self.r_pre.0.len()
         ))?;
 
         // finally, compute s:
@@ -265,7 +265,7 @@ impl Ed25519 {
         call_c_api_function!(cx_bn_mod_sub(s, s, r, ed25519_order))?;
         // and copy s back to normal memory to return.
         let mut s_bytes = [0; 32];
-        call_c_api_function!(cx_bn_export(s, s_bytes.as_mut_ptr(), s_bytes.len() as u32))?;
+        call_c_api_function!(cx_bn_export(s, s_bytes.as_mut_ptr(), s_bytes.len()))?;
 
         s_bytes.reverse();
 
@@ -284,8 +284,8 @@ impl Ed25519 {
 mod test {
     use super::*;
     use hex_literal::hex;
-    use nanos_sdk::assert_eq_err as assert_eq;
-    use nanos_sdk::testing::TestType;
+    use ledger_device_sdk::assert_eq_err as assert_eq;
+    use ledger_device_sdk::testing::TestType;
     use testmacro::test_item as test;
 
     // Taken from https://github.com/novifinancial/ed25519-speccheck/blob/main/cases.txt
@@ -360,7 +360,7 @@ mod test {
     ];
     #[test]
     fn eddsa() {
-        pub const PATH: [u32; 2] = nanos_sdk::ecc::make_bip32_path(b"m/3'/4'");
+        pub const PATH: [u32; 2] = ledger_device_sdk::ecc::make_bip32_path(b"m/3'/4'");
         let mut path = ArrayVec::new();
         path.try_extend_from_slice(&PATH);
         for TestCase { msg, pbk, sig } in TEST_CASES {
