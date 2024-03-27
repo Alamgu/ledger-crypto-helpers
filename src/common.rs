@@ -1,8 +1,8 @@
 use arrayvec::CapacityError;
 use core::fmt;
-use ledger_secure_sdk_sys::*;
 use ledger_device_sdk::ecc::*;
 use ledger_device_sdk::io::SyscallError;
+use ledger_secure_sdk_sys::*;
 
 pub fn try_option<A>(q: Option<A>) -> Result<A, CryptographyError> {
     q.ok_or(CryptographyError::NoneError)

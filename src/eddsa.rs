@@ -1,7 +1,7 @@
 use arrayvec::ArrayVec;
-use ledger_secure_sdk_sys::*;
 use ledger_device_sdk::ecc::*;
 use ledger_device_sdk::io::SyscallError;
+use ledger_secure_sdk_sys::*;
 
 use crate::common::*;
 
@@ -78,7 +78,9 @@ pub struct Ed25519RawPubKeyAddress(ledger_device_sdk::ecc::ECPublicKey<65, 'E'>)
 impl Address<Ed25519RawPubKeyAddress, ledger_device_sdk::ecc::ECPublicKey<65, 'E'>>
     for Ed25519RawPubKeyAddress
 {
-    fn get_address(key: &ledger_device_sdk::ecc::ECPublicKey<65, 'E'>) -> Result<Self, SyscallError> {
+    fn get_address(
+        key: &ledger_device_sdk::ecc::ECPublicKey<65, 'E'>,
+    ) -> Result<Self, SyscallError> {
         Ok(Ed25519RawPubKeyAddress(key.clone()))
     }
     fn get_binary_address(&self) -> &[u8] {
