@@ -2,7 +2,7 @@
 #![cfg_attr(test, no_main)]
 #![feature(custom_test_frameworks)]
 #![reexport_test_harness_main = "test_main"]
-#![test_runner(nanos_sdk::testing::sdk_test_runner)]
+#![test_runner(ledger_device_sdk::testing::sdk_test_runner)]
 #![feature(generic_const_exprs)]
 #![cfg_attr(test, feature(asm_const))]
 #![feature(cfg_version)]
@@ -34,6 +34,6 @@ mod test {
 
     #[panic_handler]
     pub fn test_panic(info: &PanicInfo) -> ! {
-        nanos_sdk::testing::test_panic(info)
+        ledger_device_sdk::testing::test_panic(info)
     }
 }
